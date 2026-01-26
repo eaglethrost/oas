@@ -40,9 +40,15 @@ import {
  */
 // biome-ignore lint/style/noDefaultExport: This is safe for now.
 export default async function analyzer(definition: OASDocument): Promise<OASAnalysis> {
+
+  // Parallelize async operations (both do dereferencing) for speed
+  const [circularRefs, { raw: rawFileSize, dereferenced: dereferencedFileSize }] = await Promise.all([
+    queryCircularRefs(definition),
+    queryFileSize(definition),
+  ]);
+
   const additionalProperties = queryAdditionalProperties(definition);
   const callbacks = queryCallbacks(definition);
-  const circularRefs = await queryCircularRefs(definition);
   const commonParameters = queryCommonParameters(definition);
   const discriminators = queryDiscriminators(definition);
   const links = queryLinks(definition);
@@ -55,6 +61,7 @@ export default async function analyzer(definition: OASDocument): Promise<OASAnal
   const xmlRequests = queryXmlRequests(definition);
   const xmlResponses = queryXmlResponses(definition);
 
+  const secondPart = performance.now();
   const authDefaults = queryAuthDefaults(definition);
   const codeSampleLanguages = queryCodeSampleLanguages(definition);
   const customCodeSamples = queryCustomCodeSamples(definition);
@@ -64,8 +71,6 @@ export default async function analyzer(definition: OASDocument): Promise<OASAnal
   const staticHeaders = queryStaticHeaders(definition);
   const rawBody = queryRawBody(definition);
   const refNames = queryRefNames(definition);
-
-  const { raw: rawFileSize, dereferenced: dereferencedFileSize } = await queryFileSize(definition);
 
   const analysis: OASAnalysis = {
     general: {
