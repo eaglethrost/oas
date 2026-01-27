@@ -2,7 +2,7 @@ import type { OASDocument } from '../types.js';
 import type { OASAnalysis } from './types.js';
 
 import { circularRefs as queryCircularRefs, fileSize as queryFileSize } from './queries/openapi.js';
-import { runQueriesInParallel } from './parallel.js';
+import { runQueries } from './queries/run.js';
 
 /** All sync queries to run in parallel */
 const SYNC_QUERY_NAMES = [
@@ -47,7 +47,7 @@ export default async function analyzer(definition: OASDocument): Promise<OASAnal
 
   // Run synchronous queries in parallel using worker threads (for large documents)
   // Falls back to sequential execution for small documents to avoid worker overhead
-  const queryResults = await runQueriesInParallel(SYNC_QUERY_NAMES, definition);
+  const { results: queryResults } = await runQueries(SYNC_QUERY_NAMES, definition);
 
   const analysis: OASAnalysis = {
     general: {
