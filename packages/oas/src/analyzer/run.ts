@@ -3,10 +3,10 @@ import { dirname, join } from 'node:path';
 import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
-import type { OASDocument } from '../../types.js';
+import type { OASDocument } from '../types.js';
 
-import { syncQueries, type SyncQueryName, type SyncQueryResults } from './types.js';
-import type { WorkerTask, WorkerResult } from '../worker.js';
+import { syncQueries, type SyncQueryName, type SyncQueryResults } from './queries/types.js';
+import type { WorkerTask, WorkerResult } from './worker.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -73,6 +73,7 @@ function workerRun<K extends SyncQueryName>(
 
 async function parallelRun<K extends SyncQueryName>(queryNames: readonly K[], definition: OASDocument, workerPath: string) {
   // Run queries in parallel using worker threads
+  console.log('i am running in parallel', queryNames.length);
   const results = await Promise.all(
     queryNames.map(async name => ({
       name,

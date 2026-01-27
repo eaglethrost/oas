@@ -9,6 +9,7 @@ export default defineConfig(options => ({
   entry: [
     'src/analyzer/index.ts',
     'src/analyzer/types.ts',
+    'src/analyzer/run.ts',
     'src/analyzer/worker.ts',
     'src/extensions.ts',
     'src/index.ts',

@@ -3,7 +3,7 @@ import type { OASDocument } from '../../src/types.js';
 import petstore from '@readme/oas-examples/3.0/json/petstore.json' with { type: 'json' };
 import { describe, expect, it } from 'vitest';
 
-import { runQueries } from '../../src/analyzer/queries/run.js';
+import { runQueries } from '../../src/analyzer/run.js';
 import { syncQueries } from '../../src/analyzer/queries/types.js';
 
 describe('runQueriesInParallel', () => {

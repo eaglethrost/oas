@@ -2,7 +2,7 @@ import type { OASDocument } from '../types.js';
 import type { OASAnalysis } from './types.js';
 
 import { circularRefs as queryCircularRefs, fileSize as queryFileSize } from './queries/openapi.js';
-import { runQueries } from './queries/run.js';
+import { runQueries } from './run.js';
 
 /** All sync queries to run in parallel */
 const SYNC_QUERY_NAMES = [
