@@ -16,7 +16,7 @@ describe('runQueriesInParallel', () => {
       totalOperations: syncQueries.totalOperations(definition),
     };
 
-    const actual = await runQueriesInParallel(names, definition, { useWorkers: false });
+    const actual = await runQueriesInParallel(names, definition, { minSizeForWorkers: 0 });
 
     expect(actual).toStrictEqual(expected);
   });
