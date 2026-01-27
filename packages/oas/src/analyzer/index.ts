@@ -1,76 +1,53 @@
 import type { OASDocument } from '../types.js';
 import type { OASAnalysis } from './types.js';
 
-import {
-  additionalProperties as queryAdditionalProperties,
-  callbacks as queryCallbacks,
-  circularRefs as queryCircularRefs,
-  commonParameters as queryCommonParameters,
-  discriminators as queryDiscriminators,
-  fileSize as queryFileSize,
-  links as queryLinks,
-  mediaTypes as queryMediaTypes,
-  parameterSerialization as queryParameterSerialization,
-  polymorphism as queryPolymorphism,
-  securityTypes as querySecurityTypes,
-  serverVariables as queryServerVariables,
-  totalOperations as queryTotalOperations,
-  webhooks as queryWebhooks,
-  xml as queryXml,
-  xmlRequests as queryXmlRequests,
-  xmlResponses as queryXmlResponses,
-  xmlSchemas as queryXmlSchemas,
-} from './queries/openapi.js';
-import {
-  authDefaults as queryAuthDefaults,
-  codeSampleLanguages as queryCodeSampleLanguages,
-  codeSamplesDisabled as queryCodeSamplesDisabled,
-  corsProxyDisabled as queryCorsProxyDisabled,
-  customCodeSamples as queryCustomCodeSamples,
-  explorerDisabled as queryExplorerDisabled,
-  rawBody as queryRawBody,
-  refNames as queryRefNames,
-  staticHeaders as queryStaticHeaders,
-} from './queries/readme.js';
+import { circularRefs as queryCircularRefs, fileSize as queryFileSize } from './queries/openapi.js';
+import { runQueriesInParallel } from './parallel.js';
+
+/** All sync queries to run in parallel */
+const SYNC_QUERY_NAMES = [
+  'additionalProperties',
+  'callbacks',
+  'commonParameters',
+  'discriminators',
+  'links',
+  'parameterSerialization',
+  'polymorphism',
+  'serverVariables',
+  'webhooks',
+  'xml',
+  'xmlSchemas',
+  'xmlRequests',
+  'xmlResponses',
+  'authDefaults',
+  'codeSampleLanguages',
+  'customCodeSamples',
+  'codeSamplesDisabled',
+  'corsProxyDisabled',
+  'explorerDisabled',
+  'staticHeaders',
+  'rawBody',
+  'refNames',
+  'mediaTypes',
+  'totalOperations',
+  'securityTypes',
+] as const;
 
 /**
  * Analyze a given OpenAPI or Swagger definition for any OpenAPI, JSON Schema, and ReadMe-specific
  * feature uses it may contain.
- *
  */
 // biome-ignore lint/style/noDefaultExport: This is safe for now.
 export default async function analyzer(definition: OASDocument): Promise<OASAnalysis> {
-
-  // Parallelize async operations (both do dereferencing) for speed
+  // Run async queries that require dereferencing
   const [circularRefs, { raw: rawFileSize, dereferenced: dereferencedFileSize }] = await Promise.all([
     queryCircularRefs(definition),
     queryFileSize(definition),
   ]);
 
-  const additionalProperties = queryAdditionalProperties(definition);
-  const callbacks = queryCallbacks(definition);
-  const commonParameters = queryCommonParameters(definition);
-  const discriminators = queryDiscriminators(definition);
-  const links = queryLinks(definition);
-  const parameterSerialization = queryParameterSerialization(definition);
-  const polymorphism = queryPolymorphism(definition);
-  const serverVariables = queryServerVariables(definition);
-  const webhooks = queryWebhooks(definition);
-  const xml = queryXml(definition);
-  const xmlSchemas = queryXmlSchemas(definition);
-  const xmlRequests = queryXmlRequests(definition);
-  const xmlResponses = queryXmlResponses(definition);
-
-  const secondPart = performance.now();
-  const authDefaults = queryAuthDefaults(definition);
-  const codeSampleLanguages = queryCodeSampleLanguages(definition);
-  const customCodeSamples = queryCustomCodeSamples(definition);
-  const codeSamplesDisabled = queryCodeSamplesDisabled(definition);
-  const disabledCorsProxy = queryCorsProxyDisabled(definition);
-  const explorerDisabled = queryExplorerDisabled(definition);
-  const staticHeaders = queryStaticHeaders(definition);
-  const rawBody = queryRawBody(definition);
-  const refNames = queryRefNames(definition);
+  // Run synchronous queries in parallel using worker threads (for large documents)
+  // Falls back to sequential execution for small documents to avoid worker overhead
+  const queryResults = await runQueriesInParallel(SYNC_QUERY_NAMES, definition);
 
   const analysis: OASAnalysis = {
     general: {
@@ -80,11 +57,11 @@ export default async function analyzer(definition: OASDocument): Promise<OASAnal
       },
       mediaTypes: {
         name: 'Media Type',
-        found: queryMediaTypes(definition),
+        found: queryResults.mediaTypes,
       },
       operationTotal: {
         name: 'Operation',
-        found: queryTotalOperations(definition),
+        found: queryResults.totalOperations,
       },
       rawFileSize: {
         name: 'Raw File Size',
@@ -92,113 +69,111 @@ export default async function analyzer(definition: OASDocument): Promise<OASAnal
       },
       securityTypes: {
         name: 'Security Type',
-        found: querySecurityTypes(definition),
+        found: queryResults.securityTypes,
       },
     },
     openapi: {
       additionalProperties: {
-        present: !!additionalProperties.length,
-        locations: additionalProperties,
+        present: !!queryResults.additionalProperties.length,
+        locations: queryResults.additionalProperties,
       },
       callbacks: {
-        present: !!callbacks.length,
-        locations: callbacks,
+        present: !!queryResults.callbacks.length,
+        locations: queryResults.callbacks,
       },
       circularRefs: {
         present: !!circularRefs.length,
         locations: circularRefs,
       },
       commonParameters: {
-        present: !!commonParameters.length,
-        locations: commonParameters,
+        present: !!queryResults.commonParameters.length,
+        locations: queryResults.commonParameters,
       },
       discriminators: {
-        present: !!discriminators.length,
-        locations: discriminators,
+        present: !!queryResults.discriminators.length,
+        locations: queryResults.discriminators,
       },
       links: {
-        present: !!links.length,
-        locations: links,
+        present: !!queryResults.links.length,
+        locations: queryResults.links,
       },
       style: {
-        present: !!parameterSerialization.length,
-        locations: parameterSerialization,
+        present: !!queryResults.parameterSerialization.length,
+        locations: queryResults.parameterSerialization,
       },
       polymorphism: {
-        present: !!polymorphism.length,
-        locations: polymorphism,
+        present: !!queryResults.polymorphism.length,
+        locations: queryResults.polymorphism,
       },
       serverVariables: {
-        present: !!serverVariables.length,
-        locations: serverVariables,
+        present: !!queryResults.serverVariables.length,
+        locations: queryResults.serverVariables,
       },
       webhooks: {
-        present: !!webhooks.length,
-        locations: webhooks,
+        present: !!queryResults.webhooks.length,
+        locations: queryResults.webhooks,
       },
       xml: {
-        present: !!xml.length,
-        locations: xml,
+        present: !!queryResults.xml.length,
+        locations: queryResults.xml,
       },
       xmlSchemas: {
-        present: !!xmlSchemas.length,
-        locations: xmlSchemas,
+        present: !!queryResults.xmlSchemas.length,
+        locations: queryResults.xmlSchemas,
       },
       xmlRequests: {
-        present: !!xmlRequests.length,
-        locations: xmlRequests,
+        present: !!queryResults.xmlRequests.length,
+        locations: queryResults.xmlRequests,
       },
       xmlResponses: {
-        present: !!xmlResponses.length,
-        locations: xmlResponses,
+        present: !!queryResults.xmlResponses.length,
+        locations: queryResults.xmlResponses,
       },
     },
     readme: {
       'x-default': {
-        present: !!authDefaults.length,
-        locations: authDefaults,
+        present: !!queryResults.authDefaults.length,
+        locations: queryResults.authDefaults,
       },
       'x-readme.code-samples': {
-        present: !!customCodeSamples.length,
-        locations: customCodeSamples,
+        present: !!queryResults.customCodeSamples.length,
+        locations: queryResults.customCodeSamples,
       },
       'x-readme.headers': {
-        present: !!staticHeaders.length,
-        locations: staticHeaders,
+        present: !!queryResults.staticHeaders.length,
+        locations: queryResults.staticHeaders,
       },
       'x-readme.explorer-enabled': {
-        present: !!explorerDisabled.length,
-        locations: explorerDisabled,
+        present: !!queryResults.explorerDisabled.length,
+        locations: queryResults.explorerDisabled,
       },
       'x-readme.proxy-enabled': {
-        present: !!disabledCorsProxy.length,
-        locations: disabledCorsProxy,
+        present: !!queryResults.corsProxyDisabled.length,
+        locations: queryResults.corsProxyDisabled,
       },
       'x-readme.samples-languages': {
-        present: !!codeSampleLanguages.length,
-        locations: codeSampleLanguages,
+        present: !!queryResults.codeSampleLanguages.length,
+        locations: queryResults.codeSampleLanguages,
       },
       'x-readme-ref-name': {
-        present: !!refNames.length,
-        locations: refNames,
+        present: !!queryResults.refNames.length,
+        locations: queryResults.refNames,
       },
     },
   };
 
-  // We should only surface analysis for deprecated features and extensions if they have them as
-  // there's no reason to give them information about something they can't use and should no longer
-  // know about.
-  if (codeSamplesDisabled.length) {
+  // Only surface deprecated features if they're present
+  if (queryResults.codeSamplesDisabled.length) {
     analysis.readme['x-readme.samples-enabled'] = {
-      present: !!codeSamplesDisabled.length,
-      locations: codeSamplesDisabled,
+      present: true,
+      locations: queryResults.codeSamplesDisabled,
     };
   }
 
-  if (rawBody.length) {
+  if (queryResults.rawBody.length) {
     analysis.readme.raw_body = {
-      present: !!rawBody.length,
-      locations: rawBody,
+      present: true,
+      locations: queryResults.rawBody,
     };
   }
 
